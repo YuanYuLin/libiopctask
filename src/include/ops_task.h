@@ -8,9 +8,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#define QUEUE_NAME_MAIN		"main"
-#define QUEUE_NAME_WWW		"www"
-
 struct ops_task_t {
 	void (*init) (void);
 	void (*show_all) (void);
