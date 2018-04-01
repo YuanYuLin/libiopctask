@@ -24,8 +24,8 @@ static struct task_info_t task_list[] = {
 //	{ 0, task_main_db_queue },
 
 	{ 0, task_main_queue },
-	{ 0, task_uds_www_send },
 	{ 0, task_uds_www_recv },
+	{ 0, task_uds_www_send },
 //	{ 0, task_syscmd_queue },
 
 	{ 0, task_sysinit },
