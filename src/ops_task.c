@@ -11,11 +11,11 @@ struct task_info_t {
 //extern void* task_uds_db_recv(void* ptr);
 //extern void* task_uds_db_send(void* ptr);
 //extern void* task_main_db_queue(void* ptr);
-extern void* task_main_queue(void* ptr);
-extern void* task_uds_www_recv(void* ptr);
-extern void* task_uds_www_send(void* ptr);
+extern void* task_bridge_queue(void* ptr);
+extern void* task_uds_recv(void* ptr);
+extern void* task_uds_send(void* ptr);
 //extern void* task_syscmd_queue(void* ptr);
-extern void* task_sysinit(void* ptr);
+extern void* task_timer(void* ptr);
 extern void* task_www(void* ptr);
 
 static struct task_info_t task_list[] = {
@@ -23,12 +23,12 @@ static struct task_info_t task_list[] = {
 //	{ 0, task_uds_db_recv },
 //	{ 0, task_main_db_queue },
 
-	{ 0, task_main_queue },
-	{ 0, task_uds_www_recv },
-	{ 0, task_uds_www_send },
+	{ 0, task_bridge_queue },
+	{ 0, task_uds_recv },
+	{ 0, task_uds_send },
 //	{ 0, task_syscmd_queue },
 
-	{ 0, task_sysinit },
+	{ 0, task_timer },
 	{ 0, task_www }
 };
 

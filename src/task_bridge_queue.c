@@ -10,7 +10,7 @@
 #include "ops_task.h"
 #include "ops_cmd.h"
 
-void* task_main_queue(void* ptr)
+void* task_bridge_queue(void* ptr)
 {
     struct queue_msg_t queue_req;
     struct queue_msg_t queue_res;

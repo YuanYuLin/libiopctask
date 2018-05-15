@@ -35,19 +35,21 @@ static int send_syscmd(uint8_t fn, uint8_t cmd, uint8_t* json_string)
 	return uds_rsp;
 }
 
-void* task_sysinit(void* ptr)
+void* task_timer(void* ptr)
 {
     //struct ops_log_t* log = get_log_instance();
 
-    send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"mount_hdd\", \"dev\":\"all\"}");
-    send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"up_ifc\", \"ifc\":\"all\"}");
-    //send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"set_hostname\"}");
+    sleep(1);
+    send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"mount_swap\", \"dev\":\"all\"}");
+    send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"mount_storage\", \"dev\":\"all\"}");
+    send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"up_netifc\", \"ifc\":\"all\"}");
+    send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"set_hostname\"}");
 
     //send_syscmd(CMD_FN_2, CMD_NO_1, "{\"ops\":\"start_drbd\", \"is_master\":0, \"mounted_dir\":\"/hdd/drbd\"}");
 
     while(1) {
     //log->debug(0x01, "%s-%s-%s\n", __FILE__, __func__, __LINE__);
-	    sleep(100);
+	    sleep(1);
     }
     return NULL;
 }

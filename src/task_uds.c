@@ -63,7 +63,7 @@ static int handle_client(struct uds_session_t* uds_session)
 	return 0;
 }
 
-void* task_uds_www_recv(void* ptr)
+void* task_uds_recv(void* ptr)
 {
 	uint32_t i = 0;
 	uint32_t magic = 0;
@@ -104,7 +104,7 @@ void* task_uds_www_recv(void* ptr)
 	return NULL;
 }
 
-void* task_uds_www_send(void* ptr)
+void* task_uds_send(void* ptr)
 {
     struct queue_msg_t queue_msg;
 	struct msg_t* res = &queue_msg.msg;

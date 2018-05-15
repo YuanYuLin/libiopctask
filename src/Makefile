@@ -16,13 +16,11 @@ LDFLAGS += -lc -lpthread -ldl
 
 SRC = 
 SRC += ops_task.c
-#SRC += task_main_db.c
-#SRC += task_uds_db.c
-SRC += task_www.c
 
-SRC += task_main.c
-SRC += task_uds_www.c
-#SRC += task_syscmd.c
-SRC += task_sysinit.c
+SRC += task_bridge_queue.c
+SRC += task_timer.c
+SRC += task_uds.c
+
+SRC += task_www.c
 
 include Makefile.include.lib
