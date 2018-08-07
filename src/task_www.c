@@ -61,6 +61,41 @@ static int handle_hello(void *cls, void **con_cls, struct desc_param_t* param)
     return ret;
 }
 
+static int handle_set_rfb(void *cls, void **con_cls, struct desc_param_t* param)
+{
+	int ret = MHD_YES;
+	//struct MHD_Response *response;
+	struct ops_log_t* log = get_log_instance();
+
+	struct msg_t req_msg;
+	struct msg_t res_msg;
+	uint32_t msg_size = sizeof(struct msg_t);
+	struct ops_net_t* net = get_net_instance();
+
+	if(param->upload_data_size == 0) {
+		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		memset(param->val, 0, DBVALLEN);
+		/* content begin */
+		log->debug(0x01, "res_msg[%d] %s\n", res_msg.data_size, res_msg.data);
+		memcpy(param->val, "{\"ok\":0}", strlen("{\"ok\":0}"));
+		strcpy(param->content_type, "application/json; charset=utf-8");
+		/* content end */
+	} else {
+		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		/* content begin */
+		memset(&req_msg, 0, msg_size);
+		memset(&res_msg, 0, msg_size);
+		req_msg.fn = CMD_FN_2;
+		req_msg.cmd = CMD_NO_2;
+		req_msg.data_size = param->upload_data_size;
+		memcpy(req_msg.data, param->upload_data, req_msg.data_size);
+		net->uds_client_send_and_recv(&req_msg, &res_msg);
+		/* content end */
+		param->upload_data_size = 0;
+	}
+	return ret;
+}
+
 static int handle_get_dao(void *cls, void **con_cls, struct desc_param_t* param)
 {
 	int ret = MHD_YES;
@@ -217,6 +252,7 @@ static struct www_desc_t www_descs[] = {
 	{METHOD_POST,	"/api/v1/dao/", handle_set_dao},
 	{METHOD_POST,	"/api/v1/ops",	handle_run_ops},
 	{METHOD_GET,	"/api/v1/status", handle_get_ops_status},
+	{METHOD_POST,	"/api/v1/rfb", handle_set_rfb},
 };
 
 static int httpd_handler(void *cls, struct MHD_Connection *con, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls)

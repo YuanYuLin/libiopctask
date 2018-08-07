@@ -17,6 +17,7 @@ extern void* task_uds_send(void* ptr);
 //extern void* task_syscmd_queue(void* ptr);
 extern void* task_timer(void* ptr);
 extern void* task_www(void* ptr);
+extern void* task_rfb(void* ptr);
 
 static struct task_info_t task_list[] = {
 //	{ 0, task_uds_db_send },
@@ -26,6 +27,7 @@ static struct task_info_t task_list[] = {
 	{ 0, task_bridge_queue },
 	{ 0, task_uds_recv },
 	{ 0, task_uds_send },
+	{ 0, task_rfb },
 //	{ 0, task_syscmd_queue },
 
 	{ 0, task_timer },
