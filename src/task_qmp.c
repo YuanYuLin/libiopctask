@@ -21,7 +21,7 @@
 #include "ops_drm.h"
 #endif
 
-static struct drm_dev_t* g_drm_dev = NULL;
+static struct drm_dev_t* g_drm_dev;
 
 static int init_dri()
 {
@@ -77,8 +77,6 @@ static void* process_rfb_drm_test(void* arg)
 	int idx = 0;
 	struct ops_log_t *log = get_log_instance();
 	struct drm_dev_t *drm_dev = (struct drm_dev_t*)g_drm_dev;
-	if(drm_dev == NULL)
-		return NULL;
 	log->debug(0x01, "%s - %s : %d x %d\n", __FILE__, __func__, drm_dev->width, drm_dev->height);
 	while(1) {
 		idx = idx % 5;
@@ -197,23 +195,13 @@ static void* process_rfb_conn_start(void* arg)
 	fb_dev_rfb.bpp = si.fb_pixel_format.bit_per_pixel;
 
 	do {
-		if(g_drm_dev == NULL) {
-			fb_dev_phy.width = 0;
-			fb_dev_phy.height = 0;
-			fb_dev_phy.x_pos = 0;
-			fb_dev_phy.y_pos = 0;
-			fb_dev_phy.fb_ptr = NULL;
-			fb_dev_phy.depth = DEPTH;
-			fb_dev_phy.bpp = BPP;
-		} else {
-			fb_dev_phy.width = (g_drm_dev->width * SCALE_FACTOR);
-			fb_dev_phy.height = (g_drm_dev->height * SCALE_FACTOR);
-			fb_dev_phy.x_pos = ((idx % COLUM) + 1)	* (g_drm_dev->width * SCALE_FACTOR);
-			fb_dev_phy.y_pos = ((idx / COLUM) + 15)	* (g_drm_dev->height * SCALE_FACTOR);
-			fb_dev_phy.fb_ptr = g_drm_dev->buf;
-			fb_dev_phy.depth = DEPTH;
-			fb_dev_phy.bpp = BPP;
-		}
+		fb_dev_phy.width = (g_drm_dev->width * SCALE_FACTOR);
+		fb_dev_phy.height = (g_drm_dev->height * SCALE_FACTOR);
+		fb_dev_phy.x_pos = ((idx % COLUM) + 1)	* (g_drm_dev->width * SCALE_FACTOR);
+		fb_dev_phy.y_pos = ((idx / COLUM) + 15)	* (g_drm_dev->height * SCALE_FACTOR);
+		fb_dev_phy.fb_ptr = g_drm_dev->buf;
+		fb_dev_phy.depth = DEPTH;
+		fb_dev_phy.bpp = BPP;
 
 		if (rfb->processor(socket_fd, &si, &fb_dev_rfb) < 0) {
 			log->debug(0x01, "processor error....\n");
@@ -229,8 +217,7 @@ static void* process_rfb_conn_start(void* arg)
 				uint16_t rfb_y = (uint16_t)(((float)pos_y)/scale_height + 0.5);
 				log->debug(0x01, "[%f-x-%d/%d:%f-y-%d/%d] = [%d:%d] = [%d:%d]\n", scale_width, fb_dev_phy.width, fb_dev_rfb.width, scale_height, fb_dev_phy.height, fb_dev_rfb.height, pos_x, pos_y, rfb_x, rfb_y);
 				uint32_t px = *(fb_dev_rfb.fb_ptr + ((rfb_y * fb_dev_rfb.width) + rfb_x));
-				if(g_drm_dev != NULL)
-					*(g_drm_dev->buf + (((fb_dev_phy.y_pos + pos_y) * g_drm_dev->width) + (fb_dev_phy.x_pos + pos_x))) = px;
+				*(g_drm_dev->buf + (((fb_dev_phy.y_pos + pos_y) * g_drm_dev->width) + (fb_dev_phy.x_pos + pos_x))) = px;
 			}
 		}
 
@@ -296,10 +283,7 @@ void* task_rfb(void* ptr)
 	int drm_fd = -1;
 	struct rfb_arg_t rfb_arg;
 	drm_fd = init_dri();
-	if(g_drm_dev != NULL)
-		log->debug(0x01, "drm fd %d, w[%d] x h[%d]\n", drm_fd, g_drm_dev->width, g_drm_dev->height);
-	else
-		log->debug(0x01, "drm fd %d, g_drm_dev is NULL\n", drm_fd);
+	log->debug(0x01, "drm fd %d, w[%d] x h[%d]\n", drm_fd, g_drm_dev->width, g_drm_dev->height);
 
 	while(1) {
 		memset((uint8_t*)&queue_req, 0, sizeof(struct queue_msg_t));
