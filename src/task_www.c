@@ -39,7 +39,7 @@ struct desc_param_t {
 
 #define METHOD_GET	((uint8_t)0x01)
 #define METHOD_POST	((uint8_t)0x02)
-
+#define METHOD_UNKNOWN	((uint8_t)0xF0)
 #define HTTP_11		((uint8_t)0x01)
 
 struct www_desc_t {
@@ -263,7 +263,7 @@ static int httpd_handler(void *cls, struct MHD_Connection *con, const char *url,
     int idx = 0;
     int www_desc_count = sizeof(www_descs)/sizeof(struct www_desc_t);
     struct www_desc_t* www_desc = NULL;
-    struct desc_param_t *con_info;
+    struct desc_param_t *con_info = NULL;
     struct MHD_Response *response;
 
     if( (0 == strcmp(method, "POST")) && 
@@ -300,11 +300,21 @@ static int httpd_handler(void *cls, struct MHD_Connection *con, const char *url,
 		    con_info->version = HTTP_11;
 	    }
 	    con_info->method = METHOD_GET;
+    } else if(NULL == *con_cls){
+	    con_info = malloc (sizeof (struct desc_param_t));
+	    if ( NULL == con_info )
+		    return MHD_NO;
+	    con_info->con = con;
+	    con_info->url = (char*)url;
+	    if(0 == strcmp(version, "HTTP/1.1")) {
+		    con_info->version = HTTP_11;
+	    }
+	    con_info->method = METHOD_UNKNOWN;
     }
 
     if(NULL == *con_cls) {
-	    *con_cls = (void *) con_info;
-	    return MHD_YES;
+            *con_cls = (void *) con_info;
+            return MHD_YES;
     } else {
 	    con_info = (struct desc_param_t*)(*con_cls);
 	    con_info->upload_data = (char*)upload_data;
@@ -340,6 +350,7 @@ static void request_completed(void *cls, struct MHD_Connection *connection, void
 
 	if (NULL == con_info) {
 		log->debug(0x01, "con_info is NULL");
+	        *con_cls = NULL;
 		return ;
 	}
 
