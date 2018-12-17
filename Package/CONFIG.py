@@ -61,6 +61,18 @@ def MAIN_INSTALL(args):
 
     return False
 
+def MAIN_SDKENV(args):
+    set_global(args)
+
+    cflags = ""
+    cflags += " -I" + ops.path_join(iopc.getSdkPath(), 'usr/include/' + args["pkg_name"])
+    iopc.add_includes(cflags)
+
+    libs = " -liopctask"
+    iopc.add_libs(libs)
+
+    return False
+
 def MAIN_CLEAN_BUILD(args):
     set_global(args)
 
