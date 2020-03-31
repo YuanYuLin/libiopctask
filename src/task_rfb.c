@@ -59,15 +59,13 @@ static int init_dri()
 	*/
 
 	g_drm_dev = drm_head;
-	log->debug(0x01, "connector id:%d\n", g_drm_dev->conn_id);
-	log->debug(0x01, "\tencoder id:%d crtc id:%d fb id:%d\n", g_drm_dev->enc_id, g_drm_dev->crtc_id, g_drm_dev->fb_id);
-	log->debug(0x01, "\twidth:%d height:%d\n", g_drm_dev->width, g_drm_dev->height);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "connector id:%d, wxh: %d, %d", g_drm_dev->conn_id, g_drm_dev->width, g_drm_dev->height);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "\tencoder id:%d crtc id:%d fb id:%d", g_drm_dev->enc_id, g_drm_dev->crtc_id, g_drm_dev->fb_id);
 
 	drm->setup(drm_fd, g_drm_dev);
 
-	log->debug(0x01, "connector id:%d\n", g_drm_dev->conn_id);
-	log->debug(0x01, "\tencoder id:%d crtc id:%d fb id:%d\n", g_drm_dev->enc_id, g_drm_dev->crtc_id, g_drm_dev->fb_id);
-	log->debug(0x01, "\twidth:%d height:%d\n", g_drm_dev->width, g_drm_dev->height);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "connector id:%d, wxh: %d, %d", g_drm_dev->conn_id, g_drm_dev->width, g_drm_dev->height);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "\tencoder id:%d crtc id:%d fb id:%d", g_drm_dev->enc_id, g_drm_dev->crtc_id, g_drm_dev->fb_id);
 #endif
 	return drm_fd;
 }
@@ -79,7 +77,7 @@ static void* process_rfb_drm_test(void* arg)
 	struct drm_dev_t *drm_dev = (struct drm_dev_t*)g_drm_dev;
 	if(drm_dev == NULL)
 		return NULL;
-	log->debug(0x01, "%s - %s : %d x %d\n", __FILE__, __func__, drm_dev->width, drm_dev->height);
+	log->info(0x01, __FILE__, __func__, __LINE__, "%d x %d", drm_dev->width, drm_dev->height);
 	while(1) {
 		idx = idx % 5;
 		for(int y=0; y<drm_dev->height; y++) {
@@ -105,7 +103,7 @@ static int get_rfb_count()
 	db->get_val("rfb_count", &db_val[0]);
 	json_reader_t* db_reader = json->create_json_reader(&db_val[0]);
 	count = json->get_json_array_count(db_reader);
-	log->debug(0x01, "%s-%s-%d: %d\n", __FILE__, __func__, __LINE__, count);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "%d", count);
 	return count;
 }
 
@@ -118,10 +116,10 @@ static uint8_t* get_rfb_by_index(uint8_t index)
 	uint8_t *str_ptr = NULL;
 	memset(&db_val[0], 0, DBVALLEN);
 	db->get_val("rfb_count", &db_val[0]);
-	log->debug(0x01, "%s-%s-%d:%d , %s\n", __FILE__, __func__, __LINE__, index, db_val);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "%d , %s", index, db_val);
 	json_reader_t* db_reader = json->create_json_reader(&db_val[0]);
 	str_ptr = json->get_json_array_string_by_index(db_reader, index, "");
-	log->debug(0x01, "%s-%s-%d: %s\n", __FILE__, __func__, __LINE__, str_ptr);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "%s", str_ptr);
 	return str_ptr;
 }
 
@@ -170,21 +168,21 @@ static void* process_rfb_conn_start(void* arg)
 	uint8_t *rfb_name = get_rfb_by_index(idx);
 	memset(&db_val[0], 0, DBVALLEN);
 	db->get_val(rfb_name, &db_val[0]);
-	log->debug(0x01, "rfb idx : %d, act : %d\n", rfb_arg->index, rfb_arg->action);
-	log->debug(0x01, "rfb key:%s, val=%s\n", rfb_name, db_val);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "rfb idx : %d, act : %d", rfb_arg->index, rfb_arg->action);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "rfb key:%s, val=%s", rfb_name, db_val);
 	json_reader_t *rfb_reader = json->create_json_reader(&db_val[0]);
 	uint8_t* rfb_host = json->get_json_string(rfb_reader, "host", "127.0.0.1");
 	int rfb_port = json->get_json_int(rfb_reader, "port", 5919);
 
-	log->debug(0x01, "rfb conn %s::%d\n", rfb_host, rfb_port);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "rfb conn %s::%d", rfb_host, rfb_port);
         socket_fd = rfb->create_socket(rfb_host, rfb_port);
 	if (rfb->handshake(socket_fd, &si) < 0) {
-		log->debug(0x01, "handleshake failed....\n");
+		log->error(0xFF, __FILE__, __func__, __LINE__, "handleshake failed....");
 		rfb->close_socket(socket_fd);
 		return NULL;
 	}
 	if (rfb->request_entire_screen(socket_fd, &si) < 0) {
-		log->debug(0x01, "request content failed....\n");
+		log->error(0xFF, __FILE__, __func__, __LINE__, "request content failed....");
 		rfb->close_socket(socket_fd);
 		return NULL;
 	}
@@ -216,7 +214,7 @@ static void* process_rfb_conn_start(void* arg)
 		}
 
 		if (rfb->processor(socket_fd, &si, &fb_dev_rfb) < 0) {
-			log->debug(0x01, "processor error....\n");
+			log->error(0xFF, __FILE__, __func__, __LINE__, "processor error....");
 			break;
 		}
 		
@@ -227,7 +225,7 @@ static void* process_rfb_conn_start(void* arg)
 			for(uint16_t pos_x=0;pos_x<fb_dev_phy.width;pos_x++){
 				uint16_t rfb_x = (uint16_t)(((float)pos_x)/scale_width + 0.5);
 				uint16_t rfb_y = (uint16_t)(((float)pos_y)/scale_height + 0.5);
-				log->debug(0x01, "[%f-x-%d/%d:%f-y-%d/%d] = [%d:%d] = [%d:%d]\n", scale_width, fb_dev_phy.width, fb_dev_rfb.width, scale_height, fb_dev_phy.height, fb_dev_rfb.height, pos_x, pos_y, rfb_x, rfb_y);
+				log->debug(0x01, __FILE__, __func__, __LINE__, "[%f-x-%d/%d:%f-y-%d/%d] = [%d:%d] = [%d:%d]", scale_width, fb_dev_phy.width, fb_dev_rfb.width, scale_height, fb_dev_phy.height, fb_dev_rfb.height, pos_x, pos_y, rfb_x, rfb_y);
 				uint32_t px = *(fb_dev_rfb.fb_ptr + ((rfb_y * fb_dev_rfb.width) + rfb_x));
 				if(g_drm_dev != NULL)
 					*(g_drm_dev->buf + (((fb_dev_phy.y_pos + pos_y) * g_drm_dev->width) + (fb_dev_phy.x_pos + pos_x))) = px;
@@ -235,7 +233,7 @@ static void* process_rfb_conn_start(void* arg)
 		}
 
 		if (rfb->request_changed_screen(socket_fd, &si) < 0) {
-			log->debug(0x01, "request content failed....\n");
+			log->debug(0x01, __FILE__, __func__, __LINE__, "request content failed...");
 			break;
 		}
 	} while(rfb_conn_info[idx].running_status == RFB_INFO_START);
@@ -248,7 +246,7 @@ static void* process_rfb_conn_start(void* arg)
 static int process_rfb_msg(struct rfb_arg_t* rfb_arg, struct req_rfb_msg_t* req_rfb_msg, struct res_rfb_msg_t* res_rfb_msg)
 {
 	struct ops_log_t *log = get_log_instance();
-	log->debug(0x01, "rfb req_msg idx:%d, act:%d\n", req_rfb_msg->index, req_rfb_msg->action);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "rfb req_msg idx:%d, act:%d", req_rfb_msg->index, req_rfb_msg->action);
 	res_rfb_msg->status = 0x0;
 	res_rfb_msg->index = 0x01;
 	res_rfb_msg->action = 0x09;
@@ -258,16 +256,16 @@ static int process_rfb_msg(struct rfb_arg_t* rfb_arg, struct req_rfb_msg_t* req_
 
 	int slot_count = get_rfb_count();
 	if( rfb_arg->index >= slot_count) {
-		log->debug(0x01, "rfb %d/%d error: index not valid\n", rfb_arg->index, slot_count );
+		log->error(0xFF, __FILE__, __func__, __LINE__, "rfb %d/%d error: index not valid", rfb_arg->index, slot_count );
 		return sizeof(struct res_rfb_msg_t);
 	}
 
-	log->debug(0x01, "rfb idx:%d, act:%d\n", rfb_arg->index, rfb_arg->action);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "rfb idx:%d, act:%d", rfb_arg->index, rfb_arg->action);
 	if(rfb_arg->action == RFB_DRM_TEST) {
 		pthread_create(&pid, NULL, &process_rfb_drm_test, (void*)rfb_arg);
 	}else if(rfb_arg->action == RFB_CONN_START) {
 		if(rfb_conn_info[rfb_arg->index].running_status == RFB_INFO_START) {
-			log->debug(0x01, "slot is running [%d]\n", rfb_arg->index);
+			log->error(0xFF, __FILE__, __func__, __LINE__, "slot is running [%d]", rfb_arg->index);
 			return sizeof(struct res_rfb_msg_t);
 		}
 		rfb_conn_info[rfb_arg->index].running_status = RFB_INFO_START;
@@ -297,9 +295,9 @@ void* task_rfb(void* ptr)
 	struct rfb_arg_t rfb_arg;
 	drm_fd = init_dri();
 	if(g_drm_dev != NULL)
-		log->debug(0x01, "drm fd %d, w[%d] x h[%d]\n", drm_fd, g_drm_dev->width, g_drm_dev->height);
+		log->info(0x01, __FILE__, __func__, __LINE__, "drm fd %d, w[%d] x h[%d]", drm_fd, g_drm_dev->width, g_drm_dev->height);
 	else
-		log->debug(0x01, "drm fd %d, g_drm_dev is NULL\n", drm_fd);
+		log->error(0xFF, __FILE__, __func__, __LINE__, "drm fd %d, g_drm_dev is NULL", drm_fd);
 
 	while(1) {
 		memset((uint8_t*)&queue_req, 0, sizeof(struct queue_msg_t));

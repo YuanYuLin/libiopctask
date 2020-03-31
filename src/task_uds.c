@@ -18,12 +18,12 @@
 static int socket_fd = -1;
 
 struct uds_session_t {
-	volatile uint8_t is_used;
-	uint32_t index;
-	uint32_t magic;
+	uint8_t is_used;
+	uint8_t magic;
+	uint16_t index;
 	struct sockaddr_un cli_addr;
 	socklen_t cli_addr_len;
-};
+} __attribute__ ((packed));
 
 static struct uds_session_t session[MAX_CLIENT_WWW];
 
@@ -38,21 +38,21 @@ static int handle_client(struct uds_session_t* uds_session)
 
 	memset(&queue_msg, 0, sizeof(struct queue_msg_t));
 	rc = net->uds_server_recv(socket_fd, req, &uds_session->cli_addr, &uds_session->cli_addr_len);
-	log->debug(0x01, "serv read count = %ld, %s, %ld\n", rc, uds_session->cli_addr.sun_path, uds_session->cli_addr_len);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "serv read count = %ld, %s, %ld", rc, uds_session->cli_addr.sun_path, uds_session->cli_addr_len);
 
 	if(rc < 0) {
-		log->error(0x01, "handle client error : <= 0 \n");
+		log->error(0xFF, __FILE__, __func__, __LINE__, "handle client error : <= 0");
 		close(socket_fd);
 		return -1;
 	}
 
 	if(req->data_size > MAX_MSG_DATA_SIZE) {
-		log->error(0x01, "data size > %ld\n", MAX_MSG_DATA_SIZE);
+		log->error(0xFF, __FILE__, __func__, __LINE__, "data size > %ld", MAX_MSG_DATA_SIZE);
 		close(socket_fd);
 		return -3;
 	}
 
-	log->debug(0x01, "www req- fn: %x, cmd: %x, ds: %ld\n", req->fn, req->cmd, req->data_size);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "www req- fn: %x, cmd: %x, ds: %ld", req->fn, req->cmd, req->data_size);
 
 	queue_msg.index = uds_session->index;
 	queue_msg.magic = uds_session->magic;
@@ -69,6 +69,7 @@ void* task_uds_recv(void* ptr)
 	uint32_t magic = 0;
 	struct uds_session_t *uds = NULL;
 	struct ops_net_t* net = get_net_instance();
+	struct ops_log_t* log = get_log_instance();
 	for(i=0;i<MAX_CLIENT_WWW;i++) {
 		uds = &session[i];
 		memset(uds, 0, sizeof(struct uds_session_t));
@@ -78,9 +79,9 @@ void* task_uds_recv(void* ptr)
 	}
 	uds = NULL;
 
-	socket_fd = net->uds_server_create();
+	socket_fd = net->uds_server_create(SOCKET_PATH_WWW);
 	if(socket_fd < 0) {
-		printf("bind socket error\n");
+		log->error(0xFF, __FILE__, __func__, __LINE__, "bind socket error");
 		return NULL;
 	}
 
@@ -118,17 +119,16 @@ void* task_uds_send(void* ptr)
 	while(1) {
         	memset((uint8_t*)&queue_msg, 0, sizeof(struct queue_msg_t));
 		rc = mq->get_from(QUEUE_NAME_UDS_WWW, &queue_msg);
-		log->debug(0x01, "get from %s, %s, %d, %ld , %ld\n", queue_msg.src, queue_msg.dst, queue_msg.index, queue_msg.magic, rc);
-	log->debug(0x01, "www res- fn: %x, cmd: %x, ds: %ld\n", res->fn, res->cmd, res->data_size);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "get from %s, %s, %d, %ld , %ld", queue_msg.src, queue_msg.dst, queue_msg.index, queue_msg.magic, rc);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "www res- fn: %x, cmd: %x, ds: %ld", res->fn, res->cmd, res->data_size);
 		uds = &session[queue_msg.index];
-		log->debug(0x01, "send path : %s, %ld\n", uds->cli_addr.sun_path, uds->cli_addr_len);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "send path : %s, %ld", uds->cli_addr.sun_path, uds->cli_addr_len);
 		wc = net->uds_server_send(socket_fd, &queue_msg.msg, &uds->cli_addr, uds->cli_addr_len);
-	if(wc < 0) {
-		log->error(0x01, "handle client send error \n");
-		log->debug(0x01, "sendto error : %s\n", strerror(errno));
-	}
-	log->debug(0x01, "$s-%s-%d:serv Send size %ld\n", __FILE__, __func__, __LINE__, wc);
-	uds->is_used = 0;
+		if(wc < 0) {
+			log->error(0xFF, __FILE__, __func__, __LINE__, "handle client send error: %s", strerror(errno));
+		}
+		log->debug(0x01, __FILE__, __func__, __LINE__, "serv Send size %ld", wc);
+		uds->is_used = 0;
 	}
 	return NULL;
 }

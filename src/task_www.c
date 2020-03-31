@@ -18,7 +18,7 @@
 #include "ops_cmd.h"
 #include "ops_db.h"
 
-#define HTTPD_FLAGS		MHD_USE_EPOLL_INTERNALLY | MHD_USE_EPOLL | MHD_USE_DEBUG
+#define HTTPD_FLAGS		MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY | MHD_USE_EPOLL_LINUX_ONLY | MHD_USE_DEBUG
 #define HTTPD_PORT		80
 #define HTTPD_HOST		"0.0.0.0"
 static struct MHD_Daemon *service = NULL;
@@ -54,7 +54,7 @@ static int handle_hello(void *cls, void **con_cls, struct desc_param_t* param)
     const char *page = "<html><body>Hello, browser!</body></html>";
     //struct MHD_Response *response;
     int ret = MHD_YES;
-    log->debug(0x01, "%s, %d\n", __func__, __LINE__);
+    log->debug(0x01, __FILE__, __func__, __LINE__, "");
     memcpy(param->val, page, strlen(page));
     strcpy(param->content_type, "text/html; charset=utf-8");
 
@@ -73,15 +73,15 @@ static int handle_set_rfb(void *cls, void **con_cls, struct desc_param_t* param)
 	struct ops_net_t* net = get_net_instance();
 
 	if(param->upload_data_size == 0) {
-		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "");
 		memset(param->val, 0, DBVALLEN);
 		/* content begin */
-		log->debug(0x01, "res_msg[%d] %s\n", res_msg.data_size, res_msg.data);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "res_msg[%d] %s", res_msg.data_size, res_msg.data);
 		memcpy(param->val, "{\"ok\":0}", strlen("{\"ok\":0}"));
 		strcpy(param->content_type, "application/json; charset=utf-8");
 		/* content end */
 	} else {
-		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "");
 		/* content begin */
 		memset(&req_msg, 0, msg_size);
 		memset(&res_msg, 0, msg_size);
@@ -89,7 +89,7 @@ static int handle_set_rfb(void *cls, void **con_cls, struct desc_param_t* param)
 		req_msg.cmd = CMD_NO_2;
 		req_msg.data_size = param->upload_data_size;
 		memcpy(req_msg.data, param->upload_data, req_msg.data_size);
-		net->uds_client_send_and_recv(&req_msg, &res_msg);
+		net->uds_client_send_and_recv(SOCKET_PATH_WWW, &req_msg, &res_msg);
 		/* content end */
 		param->upload_data_size = 0;
 	}
@@ -107,9 +107,7 @@ static int handle_get_dao(void *cls, void **con_cls, struct desc_param_t* param)
 	struct ops_net_t* net = get_net_instance();
 
 	const char* key = MHD_lookup_connection_value (param->con, MHD_GET_ARGUMENT_KIND, "key");
-	log->debug(0x01, "%s, %d\n", __func__, __LINE__);
-	log->debug(0x01, "%s\n", param->url);
-	log->debug(0x01, "%s\n", key);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "url:%s, key:%s", param->url, key);
 	memset(param->val, 0, DBVALLEN);
 	/* content begin */
 	memset(&req_msg, 0, msg_size);
@@ -118,11 +116,11 @@ static int handle_get_dao(void *cls, void **con_cls, struct desc_param_t* param)
 	req_msg.cmd = CMD_NO_4;
 	sprintf(req_msg.data, "{\"%s\":\"%s\"}", KV_KEY, key);
 	req_msg.data_size = strlen(req_msg.data);
-	net->uds_client_send_and_recv(&req_msg, &res_msg);
+	net->uds_client_send_and_recv(SOCKET_PATH_WWW, &req_msg, &res_msg);
 	memcpy(param->val, res_msg.data, res_msg.data_size);
 	/* content end */
 
-	log->debug(0x01, "%d-%s\n", strlen(param->val), param->val);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "%d-%s", strlen(param->val), param->val);
 	strcpy(param->content_type, "application/json; charset=utf-8");
 
 	return ret;
@@ -134,7 +132,7 @@ static int iterate_post (void *coninfo_cls, enum MHD_ValueKind kind, const char 
 {
     //struct desc_param_t *con_info = (struct desc_param_t*)coninfo_cls;
 	struct ops_log_t* log = get_log_instance();
-	log->debug(0x01, "key:%s", key);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "key:%s", key);
 	return MHD_YES;
 }
 
@@ -152,7 +150,7 @@ static int handle_set_dao(void *cls, void **con_cls, struct desc_param_t* param)
 	memset(&req_msg, 0, msg_size);
 	memset(&res_msg, 0, msg_size);
 	if(param->upload_data_size == 0) {
-		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "");
 		/* content begin */
 		memset(param->val, 0, DBVALLEN);
 		req_msg.fn = CMD_FN_2;
@@ -161,20 +159,20 @@ static int handle_set_dao(void *cls, void **con_cls, struct desc_param_t* param)
 		//req_msg[0]=(uint8_t)strlen(key);
 		//memcpy(&req_msg[1], key, strlen(key));
 		req_msg.data_size = strlen(req_msg.data);
-		net->uds_client_send_and_recv(&req_msg, &res_msg);
-		log->debug(0x1, "%d,%d:%s\n", strlen(res_msg.data), res_msg.data_size, res_msg.data);
+		net->uds_client_send_and_recv(SOCKET_PATH_WWW, &req_msg, &res_msg);
+		log->debug(0x1, __FILE__, __func__, __LINE__, "%d,%d:%s", strlen(res_msg.data), res_msg.data_size, res_msg.data);
 		memcpy(param->val, res_msg.data, res_msg.data_size);
 		strcpy(param->content_type, "application/json; charset=utf-8");
 		/* content end */
 	} else {
-		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "");
 		/* content begin */
 		req_msg.fn = CMD_FN_2;
 		req_msg.cmd = CMD_NO_5;
 		sprintf(req_msg.data, "{\"%s\":\"%s\", \"%s\":%s}", KV_KEY, key, KV_VAL, param->upload_data);
 		req_msg.data_size = strlen(req_msg.data);
-		net->uds_client_send_and_recv(&req_msg, &res_msg);
-		log->debug(0x1, "%d,%d:%s\n", strlen(res_msg.data), res_msg.data_size, res_msg.data);
+		net->uds_client_send_and_recv(SOCKET_PATH_WWW, &req_msg, &res_msg);
+		log->debug(0x1, __FILE__, __func__, __LINE__, "%d,%d:%s", strlen(res_msg.data), res_msg.data_size, res_msg.data);
 		memcpy(param->val, res_msg.data, res_msg.data_size);
 		/* content end */
 		param->upload_data_size = 0;
@@ -194,15 +192,15 @@ static int handle_run_ops(void *cls, void **con_cls, struct desc_param_t* param)
 	struct ops_net_t* net = get_net_instance();
 
 	if(param->upload_data_size == 0) {
-		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "");
 		memset(param->val, 0, DBVALLEN);
 		/* content begin */
-		log->debug(0x01, "res_msg[%d] %s\n", res_msg.data_size, res_msg.data);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "res_msg[%d] %s", res_msg.data_size, res_msg.data);
 		memcpy(param->val, "{\"ok\":0}", strlen("{\"ok\":0}"));
 		strcpy(param->content_type, "application/json; charset=utf-8");
 		/* content end */
 	} else {
-		log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+		log->debug(0x01, __FILE__, __func__, __LINE__, "");
 		/* content begin */
 		memset(&req_msg, 0, msg_size);
 		memset(&res_msg, 0, msg_size);
@@ -210,7 +208,7 @@ static int handle_run_ops(void *cls, void **con_cls, struct desc_param_t* param)
 		req_msg.cmd = CMD_NO_1;
 		req_msg.data_size = param->upload_data_size;
 		memcpy(req_msg.data, param->upload_data, req_msg.data_size);
-		net->uds_client_send_and_recv(&req_msg, &res_msg);
+		net->uds_client_send_and_recv(SOCKET_PATH_WWW, &req_msg, &res_msg);
 		/* content end */
 		param->upload_data_size = 0;
 	}
@@ -228,7 +226,7 @@ static int handle_get_ops_status(void *cls, void **con_cls, struct desc_param_t*
 	struct ops_net_t* net = get_net_instance();
 	const char* status_id = MHD_lookup_connection_value (param->con, MHD_GET_ARGUMENT_KIND, "id");
 
-	log->debug(0x01, "%s-%s-%d\n", __FILE__, __func__, __LINE__);
+	log->debug(0x01, __FILE__, __func__, __LINE__, "");
 	/* content begin */
 	memset(&req_msg, 0, msg_size);
 	memset(&res_msg, 0, msg_size);
@@ -236,7 +234,7 @@ static int handle_get_ops_status(void *cls, void **con_cls, struct desc_param_t*
 	req_msg.cmd = CMD_NO_3;
 	sprintf(req_msg.data, "{\"ops\":\"get_status\", \"status_id\":%d}", atoi(status_id));
 	req_msg.data_size = strlen(req_msg.data);
-	net->uds_client_send_and_recv(&req_msg, &res_msg);
+	net->uds_client_send_and_recv(SOCKET_PATH_WWW, &req_msg, &res_msg);
 
 	strcpy(param->content_type, "application/json; charset=utf-8");
 	memset(param->val, 0, DBVALLEN);
@@ -258,7 +256,7 @@ static struct www_desc_t www_descs[] = {
 static int httpd_handler(void *cls, struct MHD_Connection *con, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls)
 {
     struct ops_log_t* log = get_log_instance();
-    log->debug(0x01, "url:%s, method=%s, ver=%s\n", url, method, version);
+    log->debug(0x01, __FILE__, __func__, __LINE__, "url:%s, method=%s, ver=%s", url, method, version);
     int ret = 0;
     int idx = 0;
     int www_desc_count = sizeof(www_descs)/sizeof(struct www_desc_t);
@@ -338,7 +336,7 @@ static int httpd_handler(void *cls, struct MHD_Connection *con, const char *url,
 	    MHD_destroy_response (response);
     }
     *upload_data_size = con_info->upload_data_size;
-    log->debug(0x01, "ret = %d\n", ret);
+    log->debug(0x01, __FILE__, __func__, __LINE__, "ret = %d", ret);
 
     return MHD_YES;
 }
@@ -349,18 +347,18 @@ static void request_completed(void *cls, struct MHD_Connection *connection, void
 	struct desc_param_t *con_info = (struct desc_param_t*)(*con_cls);
 
 	if (NULL == con_info) {
-		log->debug(0x01, "con_info is NULL");
+		log->error(0xFF, __FILE__, __func__, __LINE__, "con_info is NULL");
 	        *con_cls = NULL;
 		return ;
 	}
 
 	if (con_info->method == METHOD_POST) {
-		log->debug(0x01, "destroy post processor\n");
+		log->debug(0x01, __FILE__, __func__, __LINE__, "destroy post processor");
 		if(con_info->postprocessor)
 			MHD_destroy_post_processor (con_info->postprocessor);
 	}
 
-	log->debug(0x01, "free con_info\n");
+	log->debug(0x01, __FILE__, __func__, __LINE__, "free con_info");
 	free (con_info);
 	*con_cls = NULL;
 }
